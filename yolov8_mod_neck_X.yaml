@@ -1,0 +1,64 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv8 object detection model with P3-P5 outputs. For Usage examples see https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80  # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
+  # [depth, width, max_channels]
+  #n: [0.50, 0.50, 1024]   #  Versão Pequena da YOLO_NeckMODX: summary: 359 layers, 14579064 parameters, 14579048 gradients, 47.9 GFLOPs
+  #n: [0.75, 0.75, 768]   #  Versão Media da YOLO_NeckMODX: summary: 373 layers, 25153112 parameters, 25153096 gradients, 99.3 GFLOPs
+  n: [1.00, 1.25, 512]   #  Versão Grande da YOLO_NeckMODX: summary: 457 layers, 66862936 parameters, 66862920 gradients, 319.2 GFLOPs
+  
+  
+
+# YOLOv8.0n original backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4
+  - [-1, 3, C2f, [128, True]]
+  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8
+  - [-1, 6, C2f, [256, True]]
+  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16
+  - [-1, 6, C2f, [512, True]]
+  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32
+  - [-1, 3, C2f, [1024, True]]
+  - [-1, 1, SPPF, [1024, 5]]  # 9
+
+# YOLO_NeckMODX Neck
+head:
+    #Sandwich Fusion: Fuse Feature Maps above below and at the same level from backbone
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [ 4, 1, DWConv,[256, 1, 2]]  #11 
+  - [[10, 6], 1, Concat, [1]]    # cat backbone P4
+  - [[-1, 11], 1, Concat, [1]]
+  - [-1, 3, C2f, [512]]          # 14
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [ 2, 1, DWConv,[128, 1, 2]]
+  - [[15, 4], 1, Concat, [1]]
+  - [[-1, 16], 1, Concat, [1]]   # cat backbone P3
+  - [-1, 3, C2f, [256]]          #19 (P3/8-small)
+  
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [ 0, 1, DWConv,[64, 1, 2]]
+  - [[20, 2], 1, Concat, [1]]
+  - [[-1, 21], 1, Concat, [1]]   # cat backbone P2
+  - [-1, 3, C2f, [128]]          #24
+  
+  #Bottom Up from YOLOv8 but with one more layer
+  
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [[-1, 19], 1, Concat, [1]]  # cat head P4
+  - [-1, 3, C2f, [256]]         # 27 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 14], 1, Concat, [1]]  # cat head P4
+  - [-1, 3, C2f, [512]]         # 30 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 9], 1, Concat, [1]]  # cat head P5
+  - [-1, 3, C2f, [1024]]       # 33 (P5/32-large)
+  
+# YOLO_NeckMODX 4 Detection Heads (One more than original YOLOv8)
+  - [[24, 27, 30, 33], 1, Detect, [nc]]  # Detect(P2, P3, P4, P5)
