@@ -3,7 +3,7 @@
 
 # Parameters
 nc: 80  # number of classes
-scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
+scales: # model compound scaling constants
   # [depth, width, max_channels]
   #n: [0.50, 0.50, 1024]   #  Versão Pequena da YOLO_NeckMODX: summary: 359 layers, 14579064 parameters, 14579048 gradients, 47.9 GFLOPs
   #n: [0.75, 0.75, 768]   #  Versão Media da YOLO_NeckMODX: summary: 373 layers, 25153112 parameters, 25153096 gradients, 99.3 GFLOPs
